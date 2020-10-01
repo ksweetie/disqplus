@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { format, render, register } from 'timeago.js'
+import { format, register } from 'timeago.js'
 
 import { myLocale } from './timeago-locale'
 
@@ -16,10 +16,10 @@ const locale = 'my-locale'
 
 register(locale, myLocale)
 
-export function TimeAgoWrapper(props: Props): JSX.Element {
+export default function TimeAgoWrapper(props: Props): JSX.Element {
   const timeRef = useRef<HTMLElement>(null)
 
-  render(timeRef.current, locale)
+  // render(timeRef.current, locale)
 
   return (
     <span css={timeAgo}>

@@ -7,7 +7,7 @@
     "module": "esnext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "jsx": "react",
+    "jsx": "preserve",
     "declaration": true,
     "declarationDir": "dist"
   },
