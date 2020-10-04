@@ -1,5 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import ky from 'ky/umd';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faReply, faChevronUp, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { format, register } from 'timeago.js';
 import { jsx } from '@emotion/core';
 
@@ -983,6 +985,7 @@ var replyTo = {
 };
 var replyArrow = {
   fontSize: 15,
+  height: 15,
   padding: '0 5px',
   transform: 'rotateY(180deg)'
 };
@@ -996,9 +999,9 @@ function CommentHeader(_ref) {
     css: authorLink
   }, comment.author.name), parent && jsx("span", {
     css: replyTo
-  }, jsx("i", {
-    css: replyArrow,
-    className: "fa fa-reply"
+  }, jsx(FontAwesomeIcon, {
+    icon: faReply,
+    css: replyArrow
   }), parent.author.name), jsx("span", {
     css: bullet
   }, "\u2022"), jsx(TimeAgoWrapper, {
@@ -1065,6 +1068,26 @@ function CommentMessage(_ref) {
   }));
 }
 
+function _defineProperty(obj, key, value) {
+  if (key in obj) {
+    Object.defineProperty(obj, key, {
+      value: value,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    });
+  } else {
+    obj[key] = value;
+  }
+
+  return obj;
+}
+
+var defineProperty = _defineProperty;
+
+function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
+
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
 var footer = {
   alignItems: 'center',
   color: '#656c7a',
@@ -1073,7 +1096,7 @@ var footer = {
   marginTop: 10
 };
 var votelink = {
-  fontSize: 15,
+  fontSize: 16,
   opacity: 0.5,
   padding: '0 5px',
   // TODO: Make these global
@@ -1086,8 +1109,15 @@ var votelink = {
     opacity: 0.8
   }
 };
+
+var upvote = _objectSpread(_objectSpread({}, votelink), {}, {
+  marginLeft: -5
+});
+
 var voteIcon = {
-  fontSize: 14
+  fontSize: 14,
+  height: 14,
+  verticalAlign: -1
 };
 var separator = {
   borderRight: '2px solid #656c7a',
@@ -1106,19 +1136,19 @@ function CommentFooter(_ref) {
   return jsx("div", {
     css: footer
   }, jsx("button", {
-    css: votelink
+    css: upvote
   }, !!comment.likes && jsx("span", {
     css: likes
-  }, comment.likes), jsx("span", null, jsx("i", {
-    css: voteIcon,
-    className: "fa fa-chevron-up"
+  }, comment.likes), jsx("span", null, jsx(FontAwesomeIcon, {
+    icon: faChevronUp,
+    css: voteIcon
   }))), jsx("span", {
     css: separator
   }), jsx("button", {
     css: votelink
-  }, jsx("span", null, jsx("i", {
-    css: voteIcon,
-    className: "fa fa-chevron-down"
+  }, jsx("span", null, jsx(FontAwesomeIcon, {
+    icon: faChevronDown,
+    css: voteIcon
   })), !!comment.dislikes && jsx("span", {
     css: dislikes
   }, comment.dislikes)));

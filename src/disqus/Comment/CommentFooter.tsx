@@ -1,4 +1,6 @@
 import React from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faChevronUp, faChevronDown } from '@fortawesome/free-solid-svg-icons'
 
 import { IComment } from './interface'
 
@@ -15,7 +17,7 @@ const footer = {
 }
 
 const votelink = {
-  fontSize: 15,
+  fontSize: 16,
   opacity: 0.5,
   padding: '0 5px',
 
@@ -31,8 +33,12 @@ const votelink = {
   },
 }
 
+const upvote = { ...votelink, marginLeft: -5 }
+
 const voteIcon = {
   fontSize: 14,
+  height: 14,
+  verticalAlign: -1,
 }
 
 const separator = {
@@ -48,16 +54,16 @@ const dislikes = { marginLeft: 7 }
 export default function CommentFooter({ comment }: Props): JSX.Element {
   return (
     <div css={footer}>
-      <button css={votelink}>
+      <button css={upvote}>
         {!!comment.likes && <span css={likes}>{comment.likes}</span>}
         <span>
-          <i css={voteIcon} className="fa fa-chevron-up" />
+          <FontAwesomeIcon icon={faChevronUp} css={voteIcon} />
         </span>
       </button>
       <span css={separator} />
       <button css={votelink}>
         <span>
-          <i css={voteIcon} className="fa fa-chevron-down" />
+          <FontAwesomeIcon icon={faChevronDown} css={voteIcon} />
         </span>
         {!!comment.dislikes && <span css={dislikes}>{comment.dislikes}</span>}
       </button>

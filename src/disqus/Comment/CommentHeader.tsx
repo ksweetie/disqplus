@@ -1,4 +1,6 @@
 import React from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faReply } from '@fortawesome/free-solid-svg-icons'
 
 import TimeAgoWrapper from '../../misc/TimeAgoWrapper/TimeAgoWrapper'
 
@@ -32,6 +34,7 @@ const replyTo = {
 
 const replyArrow = {
   fontSize: 15,
+  height: 15,
   padding: '0 5px',
   transform: 'rotateY(180deg)',
 }
@@ -45,13 +48,11 @@ export default function CommentHeader({ comment, parent }: Props): JSX.Element {
 
       {parent && (
         <span css={replyTo}>
-          <i css={replyArrow} className="fa fa-reply" />
+          <FontAwesomeIcon icon={faReply} css={replyArrow} />
           {parent.author.name}
         </span>
       )}
-
       <span css={bullet}>•</span>
-
       <TimeAgoWrapper datetime={comment.createdAt} />
     </header>
   )
