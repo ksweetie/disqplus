@@ -1204,7 +1204,8 @@ function Forum(props) {
       forumName = props.forumName,
       link = props.link,
       _props$limit = props.limit,
-      limit = _props$limit === void 0 ? 100 : _props$limit;
+      limit = _props$limit === void 0 ? 100 : _props$limit,
+      proxy = props.proxy;
 
   var _useState = React.useState([]),
       _useState2 = slicedToArray(_useState, 2),
@@ -1253,7 +1254,7 @@ function Forum(props) {
             case 0:
               cursor = _args2.length > 0 && _args2[0] !== undefined ? _args2[0] : '';
               _context2.next = 3;
-              return ky__default['default'].get("https://disqus.com/api/3.0/posts/list.json?api_key=".concat(apiKey, "&forum=").concat(forumName, "&thread=link:").concat(link, "&limit=").concat(limit, "&cursor=").concat(cursor)).json();
+              return ky__default['default'].get("".concat(proxy, "/https://disqus.com/api/3.0/posts/list.json?api_key=").concat(apiKey, "&forum=").concat(forumName, "&thread=link:").concat(link, "&limit=").concat(limit, "&cursor=").concat(cursor)).json();
 
             case 3:
               res = _context2.sent;

@@ -9,10 +9,11 @@ interface Props {
   forumName: string
   link: string
   limit?: number
+  proxy?: string
 }
 
 export default function Forum(props: Props): JSX.Element {
-  const { apiKey, forumName, link, limit = 100 } = props
+  const { apiKey, forumName, link, limit = 100, proxy } = props
   const [comments, setComments] = useState<IComment[]>([])
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export default function Forum(props: Props): JSX.Element {
   const fetchComments = async (cursor = ''): Promise<void> => {
     const res: { response: IComment[]; cursor: { next: string } } = await ky
       .get(
-        `https://disqus.com/api/3.0/posts/list.json?api_key=${apiKey}&forum=${forumName}&thread=link:${link}&limit=${limit}&cursor=${cursor}`,
+        `${proxy}/https://disqus.com/api/3.0/posts/list.json?api_key=${apiKey}&forum=${forumName}&thread=link:${link}&limit=${limit}&cursor=${cursor}`,
       )
       .json()
     setComments((comments) => [...comments, ...res['response']])
