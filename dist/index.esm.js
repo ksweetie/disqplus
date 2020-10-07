@@ -1157,12 +1157,12 @@ function CommentFooter(_ref) {
 function Comment(_ref) {
   var comment = _ref.comment,
       allComments = _ref.allComments;
-  var parent = allComments.find(function (c) {
+  var parent = allComments === null || allComments === void 0 ? void 0 : allComments.find(function (c) {
     var _comment$parent;
 
     return ((_comment$parent = comment.parent) === null || _comment$parent === void 0 ? void 0 : _comment$parent.toString()) === c.id;
   });
-  var children = allComments.filter(function (c) {
+  var children = allComments === null || allComments === void 0 ? void 0 : allComments.filter(function (c) {
     var _c$parent;
 
     return ((_c$parent = c.parent) === null || _c$parent === void 0 ? void 0 : _c$parent.toString()) === comment.id;
@@ -1181,7 +1181,7 @@ function Comment(_ref) {
     comment: comment
   }), jsx(CommentFooter, {
     comment: comment
-  }))), children.map(function (child) {
+  }))), children === null || children === void 0 ? void 0 : children.map(function (child) {
     return jsx("div", {
       css: childrenWrapper,
       key: child.id

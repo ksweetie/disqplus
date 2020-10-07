@@ -8,12 +8,12 @@ import CommentFooter from './CommentFooter'
 
 interface Props {
   comment: IComment
-  allComments: IComment[]
+  allComments?: IComment[]
 }
 
 export default function Comment({ comment, allComments }: Props): JSX.Element {
-  const parent = allComments.find((c) => comment.parent?.toString() === c.id)
-  const children = allComments.filter((c) => c.parent?.toString() === comment.id)
+  const parent = allComments?.find((c) => comment.parent?.toString() === c.id)
+  const children = allComments?.filter((c) => c.parent?.toString() === comment.id)
 
   return (
     <>
@@ -26,7 +26,7 @@ export default function Comment({ comment, allComments }: Props): JSX.Element {
         </div>
       </div>
 
-      {children.map((child) => (
+      {children?.map((child) => (
         <div css={childrenWrapper} key={child.id}>
           <Comment comment={child} allComments={allComments} />
         </div>
