@@ -1,6 +1,7 @@
 import React from 'react'
 
 import { IComment, IMedia } from './interface'
+import '../../lib/twitter-wjs'
 
 interface Props {
   comment: IComment
@@ -43,6 +44,7 @@ export default function CommentMessage({ comment }: Props): JSX.Element {
       case 'Disquscdn':
         return `<img src="${media.thumbnailUrl}" />`
       case 'Twitter':
+        window?.twttr?.widgets?.load()
         return media.html
       default:
         return ''

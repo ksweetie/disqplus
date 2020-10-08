@@ -1009,6 +1009,26 @@ function CommentHeader(_ref) {
   }));
 }
 
+if (process.browser) {
+  window.twttr = (function (d, s, id) {
+    var js,
+      fjs = d.getElementsByTagName(s)[0],
+      t = window.twttr || {};
+    if (d.getElementById(id)) return t
+    js = d.createElement(s);
+    js.id = id;
+    js.src = 'https://platform.twitter.com/widgets.js';
+    fjs.parentNode.insertBefore(js, fjs);
+
+    t._e = [];
+    t.ready = function (f) {
+      t._e.push(f);
+    };
+
+    return t
+  })(document, 'script', 'twitter-wjs');
+}
+
 var wrapper$1 = {
   img: {
     maxWidth: '100%'
@@ -1038,11 +1058,14 @@ function CommentMessage(_ref) {
   var comment = _ref.comment;
 
   var getMedia = function getMedia(media) {
+    var _window, _window$twttr, _window$twttr$widgets;
+
     switch (media.providerName) {
       case 'Disquscdn':
         return "<img src=\"".concat(media.thumbnailUrl, "\" />");
 
       case 'Twitter':
+        (_window = window) === null || _window === void 0 ? void 0 : (_window$twttr = _window.twttr) === null || _window$twttr === void 0 ? void 0 : (_window$twttr$widgets = _window$twttr.widgets) === null || _window$twttr$widgets === void 0 ? void 0 : _window$twttr$widgets.load();
         return media.html;
 
       default:
@@ -1198,7 +1221,8 @@ function Forum(props) {
       link = props.link,
       _props$limit = props.limit,
       limit = _props$limit === void 0 ? 100 : _props$limit,
-      proxy = props.proxy;
+      _props$proxy = props.proxy,
+      proxy = _props$proxy === void 0 ? '' : _props$proxy;
 
   var _useState = useState([]),
       _useState2 = slicedToArray(_useState, 2),
@@ -1213,8 +1237,7 @@ function Forum(props) {
     setComments([]);
     fetchComments();
   }, [link]);
-  useEffect(function () {
-    window.twttr.widgets.load(); // This will run each time we fetch any comments, we could probably make this run once after we know all comments have been fetched
+  useEffect(function () {// This will run each time we fetch any comments, we could probably make this run once after we know all comments have been fetched
     // fetchCurrentUserLikes()
   }, [comments]);
 
@@ -1247,7 +1270,7 @@ function Forum(props) {
             case 0:
               cursor = _args2.length > 0 && _args2[0] !== undefined ? _args2[0] : '';
               _context2.next = 3;
-              return ky.get("".concat(proxy, "/https://disqus.com/api/3.0/posts/list.json?api_key=").concat(apiKey, "&forum=").concat(forumName, "&thread=link:").concat(link, "&limit=").concat(limit, "&cursor=").concat(cursor)).json();
+              return ky.get("".concat(proxy, "https://disqus.com/api/3.0/posts/list.json?api_key=").concat(apiKey, "&forum=").concat(forumName, "&thread=link:").concat(link, "&limit=").concat(limit, "&cursor=").concat(cursor)).json();
 
             case 3:
               res = _context2.sent;

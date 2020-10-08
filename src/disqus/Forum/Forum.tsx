@@ -13,7 +13,7 @@ interface Props {
 }
 
 export default function Forum(props: Props): JSX.Element {
-  const { apiKey, forumName, link, limit = 100, proxy } = props
+  const { apiKey, forumName, link, limit = 100, proxy = '' } = props
   const [comments, setComments] = useState<IComment[]>([])
 
   useEffect(() => {
@@ -27,7 +27,6 @@ export default function Forum(props: Props): JSX.Element {
   }, [link])
 
   useEffect(() => {
-    window.twttr.widgets.load()
     // This will run each time we fetch any comments, we could probably make this run once after we know all comments have been fetched
     // fetchCurrentUserLikes()
   }, [comments])
@@ -43,7 +42,7 @@ export default function Forum(props: Props): JSX.Element {
   const fetchComments = async (cursor = ''): Promise<void> => {
     const res: { response: IComment[]; cursor: { next: string } } = await ky
       .get(
-        `${proxy}/https://disqus.com/api/3.0/posts/list.json?api_key=${apiKey}&forum=${forumName}&thread=link:${link}&limit=${limit}&cursor=${cursor}`,
+        `${proxy}https://disqus.com/api/3.0/posts/list.json?api_key=${apiKey}&forum=${forumName}&thread=link:${link}&limit=${limit}&cursor=${cursor}`,
       )
       .json()
     setComments((comments) => [...comments, ...res['response']])
