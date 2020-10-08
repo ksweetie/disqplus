@@ -21,12 +21,6 @@ const votelink = {
   opacity: 0.5,
   padding: '0 5px',
 
-  // TODO: Make these global
-  backgroundColor: 'unset',
-  border: 0,
-  fontWeight: 700,
-  outline: 0,
-
   ':hover': {
     cursor: 'pointer',
     opacity: 0.8,

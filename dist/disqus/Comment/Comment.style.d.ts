@@ -1,10 +1,9 @@
 export declare const wrapper: {
     display: string;
-    fontFamily: string;
-    "& + &": {
+    '& + &': {
         marginTop: number;
     };
-    "& &": {
+    '& &': {
         marginLeft: number;
     };
 };
@@ -23,19 +22,19 @@ export declare const bullet: {
 export declare const childrenWrapper: {
     marginBottom: number;
     marginTop: number;
-    ".comment-container > &": {
+    '.comment-container > &': {
         marginLeft: number;
     };
-    ".comment-container > & > &": {
+    '.comment-container > & > &': {
         marginLeft: number;
     };
-    ".comment-container > & > & > &": {
+    '.comment-container > & > & > &': {
         marginLeft: number;
     };
-    ".comment-container > & > & > & > &": {
+    '.comment-container > & > & > & > &': {
         marginLeft: number;
     };
-    ".comment-container > & > & > & > & > &": {
+    '.comment-container > & > & > & > & > &': {
         marginLeft: number;
     };
 };

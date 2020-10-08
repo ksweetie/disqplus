@@ -3,7 +3,443 @@ import ky from 'ky/umd';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faReply, faChevronUp, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { format, register } from 'timeago.js';
-import { jsx } from '@emotion/core';
+import { jsx, css as css$1 } from '@emotion/core';
+
+/* eslint-disable */
+// Inspired by https://github.com/garycourt/murmurhash-js
+// Ported from https://github.com/aappleby/smhasher/blob/61a0530f28277f2e850bfc39600ce61d02b518de/src/MurmurHash2.cpp#L37-L86
+function murmur2(str) {
+  // 'm' and 'r' are mixing constants generated offline.
+  // They're not really 'magic', they just happen to work well.
+  // const m = 0x5bd1e995;
+  // const r = 24;
+  // Initialize the hash
+  var h = 0; // Mix 4 bytes at a time into the hash
+
+  var k,
+      i = 0,
+      len = str.length;
+
+  for (; len >= 4; ++i, len -= 4) {
+    k = str.charCodeAt(i) & 0xff | (str.charCodeAt(++i) & 0xff) << 8 | (str.charCodeAt(++i) & 0xff) << 16 | (str.charCodeAt(++i) & 0xff) << 24;
+    k =
+    /* Math.imul(k, m): */
+    (k & 0xffff) * 0x5bd1e995 + ((k >>> 16) * 0xe995 << 16);
+    k ^=
+    /* k >>> r: */
+    k >>> 24;
+    h =
+    /* Math.imul(k, m): */
+    (k & 0xffff) * 0x5bd1e995 + ((k >>> 16) * 0xe995 << 16) ^
+    /* Math.imul(h, m): */
+    (h & 0xffff) * 0x5bd1e995 + ((h >>> 16) * 0xe995 << 16);
+  } // Handle the last few bytes of the input array
+
+
+  switch (len) {
+    case 3:
+      h ^= (str.charCodeAt(i + 2) & 0xff) << 16;
+
+    case 2:
+      h ^= (str.charCodeAt(i + 1) & 0xff) << 8;
+
+    case 1:
+      h ^= str.charCodeAt(i) & 0xff;
+      h =
+      /* Math.imul(h, m): */
+      (h & 0xffff) * 0x5bd1e995 + ((h >>> 16) * 0xe995 << 16);
+  } // Do a few final mixes of the hash to ensure the last few
+  // bytes are well-incorporated.
+
+
+  h ^= h >>> 13;
+  h =
+  /* Math.imul(h, m): */
+  (h & 0xffff) * 0x5bd1e995 + ((h >>> 16) * 0xe995 << 16);
+  return ((h ^ h >>> 15) >>> 0).toString(36);
+}
+
+var unitlessKeys = {
+  animationIterationCount: 1,
+  borderImageOutset: 1,
+  borderImageSlice: 1,
+  borderImageWidth: 1,
+  boxFlex: 1,
+  boxFlexGroup: 1,
+  boxOrdinalGroup: 1,
+  columnCount: 1,
+  columns: 1,
+  flex: 1,
+  flexGrow: 1,
+  flexPositive: 1,
+  flexShrink: 1,
+  flexNegative: 1,
+  flexOrder: 1,
+  gridRow: 1,
+  gridRowEnd: 1,
+  gridRowSpan: 1,
+  gridRowStart: 1,
+  gridColumn: 1,
+  gridColumnEnd: 1,
+  gridColumnSpan: 1,
+  gridColumnStart: 1,
+  msGridRow: 1,
+  msGridRowSpan: 1,
+  msGridColumn: 1,
+  msGridColumnSpan: 1,
+  fontWeight: 1,
+  lineHeight: 1,
+  opacity: 1,
+  order: 1,
+  orphans: 1,
+  tabSize: 1,
+  widows: 1,
+  zIndex: 1,
+  zoom: 1,
+  WebkitLineClamp: 1,
+  // SVG-related properties
+  fillOpacity: 1,
+  floodOpacity: 1,
+  stopOpacity: 1,
+  strokeDasharray: 1,
+  strokeDashoffset: 1,
+  strokeMiterlimit: 1,
+  strokeOpacity: 1,
+  strokeWidth: 1
+};
+
+function memoize(fn) {
+  var cache = {};
+  return function (arg) {
+    if (cache[arg] === undefined) cache[arg] = fn(arg);
+    return cache[arg];
+  };
+}
+
+var ILLEGAL_ESCAPE_SEQUENCE_ERROR = "You have illegal escape sequence in your template literal, most likely inside content's property value.\nBecause you write your CSS inside a JavaScript string you actually have to do double escaping, so for example \"content: '\\00d7';\" should become \"content: '\\\\00d7';\".\nYou can read more about this here:\nhttps://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#ES2018_revision_of_illegal_escape_sequences";
+var UNDEFINED_AS_OBJECT_KEY_ERROR = "You have passed in falsy value as style object's key (can happen when in example you pass unexported component as computed key).";
+var hyphenateRegex = /[A-Z]|^ms/g;
+var animationRegex = /_EMO_([^_]+?)_([^]*?)_EMO_/g;
+
+var isCustomProperty = function isCustomProperty(property) {
+  return property.charCodeAt(1) === 45;
+};
+
+var isProcessableValue = function isProcessableValue(value) {
+  return value != null && typeof value !== 'boolean';
+};
+
+var processStyleName = memoize(function (styleName) {
+  return isCustomProperty(styleName) ? styleName : styleName.replace(hyphenateRegex, '-$&').toLowerCase();
+});
+
+var processStyleValue = function processStyleValue(key, value) {
+  switch (key) {
+    case 'animation':
+    case 'animationName':
+      {
+        if (typeof value === 'string') {
+          return value.replace(animationRegex, function (match, p1, p2) {
+            cursor = {
+              name: p1,
+              styles: p2,
+              next: cursor
+            };
+            return p1;
+          });
+        }
+      }
+  }
+
+  if (unitlessKeys[key] !== 1 && !isCustomProperty(key) && typeof value === 'number' && value !== 0) {
+    return value + 'px';
+  }
+
+  return value;
+};
+
+if (process.env.NODE_ENV !== 'production') {
+  var contentValuePattern = /(attr|calc|counters?|url)\(/;
+  var contentValues = ['normal', 'none', 'counter', 'open-quote', 'close-quote', 'no-open-quote', 'no-close-quote', 'initial', 'inherit', 'unset'];
+  var oldProcessStyleValue = processStyleValue;
+  var msPattern = /^-ms-/;
+  var hyphenPattern = /-(.)/g;
+  var hyphenatedCache = {};
+
+  processStyleValue = function processStyleValue(key, value) {
+    if (key === 'content') {
+      if (typeof value !== 'string' || contentValues.indexOf(value) === -1 && !contentValuePattern.test(value) && (value.charAt(0) !== value.charAt(value.length - 1) || value.charAt(0) !== '"' && value.charAt(0) !== "'")) {
+        console.error("You seem to be using a value for 'content' without quotes, try replacing it with `content: '\"" + value + "\"'`");
+      }
+    }
+
+    var processed = oldProcessStyleValue(key, value);
+
+    if (processed !== '' && !isCustomProperty(key) && key.indexOf('-') !== -1 && hyphenatedCache[key] === undefined) {
+      hyphenatedCache[key] = true;
+      console.error("Using kebab-case for css properties in objects is not supported. Did you mean " + key.replace(msPattern, 'ms-').replace(hyphenPattern, function (str, _char) {
+        return _char.toUpperCase();
+      }) + "?");
+    }
+
+    return processed;
+  };
+}
+
+var shouldWarnAboutInterpolatingClassNameFromCss = true;
+
+function handleInterpolation(mergedProps, registered, interpolation, couldBeSelectorInterpolation) {
+  if (interpolation == null) {
+    return '';
+  }
+
+  if (interpolation.__emotion_styles !== undefined) {
+    if (process.env.NODE_ENV !== 'production' && interpolation.toString() === 'NO_COMPONENT_SELECTOR') {
+      throw new Error('Component selectors can only be used in conjunction with babel-plugin-emotion.');
+    }
+
+    return interpolation;
+  }
+
+  switch (typeof interpolation) {
+    case 'boolean':
+      {
+        return '';
+      }
+
+    case 'object':
+      {
+        if (interpolation.anim === 1) {
+          cursor = {
+            name: interpolation.name,
+            styles: interpolation.styles,
+            next: cursor
+          };
+          return interpolation.name;
+        }
+
+        if (interpolation.styles !== undefined) {
+          var next = interpolation.next;
+
+          if (next !== undefined) {
+            // not the most efficient thing ever but this is a pretty rare case
+            // and there will be very few iterations of this generally
+            while (next !== undefined) {
+              cursor = {
+                name: next.name,
+                styles: next.styles,
+                next: cursor
+              };
+              next = next.next;
+            }
+          }
+
+          var styles = interpolation.styles + ";";
+
+          if (process.env.NODE_ENV !== 'production' && interpolation.map !== undefined) {
+            styles += interpolation.map;
+          }
+
+          return styles;
+        }
+
+        return createStringFromObject(mergedProps, registered, interpolation);
+      }
+
+    case 'function':
+      {
+        if (mergedProps !== undefined) {
+          var previousCursor = cursor;
+          var result = interpolation(mergedProps);
+          cursor = previousCursor;
+          return handleInterpolation(mergedProps, registered, result, couldBeSelectorInterpolation);
+        } else if (process.env.NODE_ENV !== 'production') {
+          console.error('Functions that are interpolated in css calls will be stringified.\n' + 'If you want to have a css call based on props, create a function that returns a css call like this\n' + 'let dynamicStyle = (props) => css`color: ${props.color}`\n' + 'It can be called directly with props or interpolated in a styled call like this\n' + "let SomeComponent = styled('div')`${dynamicStyle}`");
+        }
+
+        break;
+      }
+
+    case 'string':
+      if (process.env.NODE_ENV !== 'production') {
+        var matched = [];
+        var replaced = interpolation.replace(animationRegex, function (match, p1, p2) {
+          var fakeVarName = "animation" + matched.length;
+          matched.push("const " + fakeVarName + " = keyframes`" + p2.replace(/^@keyframes animation-\w+/, '') + "`");
+          return "${" + fakeVarName + "}";
+        });
+
+        if (matched.length) {
+          console.error('`keyframes` output got interpolated into plain string, please wrap it with `css`.\n\n' + 'Instead of doing this:\n\n' + [].concat(matched, ["`" + replaced + "`"]).join('\n') + '\n\nYou should wrap it with `css` like this:\n\n' + ("css`" + replaced + "`"));
+        }
+      }
+
+      break;
+  } // finalize string values (regular strings and functions interpolated into css calls)
+
+
+  if (registered == null) {
+    return interpolation;
+  }
+
+  var cached = registered[interpolation];
+
+  if (process.env.NODE_ENV !== 'production' && couldBeSelectorInterpolation && shouldWarnAboutInterpolatingClassNameFromCss && cached !== undefined) {
+    console.error('Interpolating a className from css`` is not recommended and will cause problems with composition.\n' + 'Interpolating a className from css`` will be completely unsupported in a future major version of Emotion');
+    shouldWarnAboutInterpolatingClassNameFromCss = false;
+  }
+
+  return cached !== undefined && !couldBeSelectorInterpolation ? cached : interpolation;
+}
+
+function createStringFromObject(mergedProps, registered, obj) {
+  var string = '';
+
+  if (Array.isArray(obj)) {
+    for (var i = 0; i < obj.length; i++) {
+      string += handleInterpolation(mergedProps, registered, obj[i], false);
+    }
+  } else {
+    for (var _key in obj) {
+      var value = obj[_key];
+
+      if (typeof value !== 'object') {
+        if (registered != null && registered[value] !== undefined) {
+          string += _key + "{" + registered[value] + "}";
+        } else if (isProcessableValue(value)) {
+          string += processStyleName(_key) + ":" + processStyleValue(_key, value) + ";";
+        }
+      } else {
+        if (_key === 'NO_COMPONENT_SELECTOR' && process.env.NODE_ENV !== 'production') {
+          throw new Error('Component selectors can only be used in conjunction with babel-plugin-emotion.');
+        }
+
+        if (Array.isArray(value) && typeof value[0] === 'string' && (registered == null || registered[value[0]] === undefined)) {
+          for (var _i = 0; _i < value.length; _i++) {
+            if (isProcessableValue(value[_i])) {
+              string += processStyleName(_key) + ":" + processStyleValue(_key, value[_i]) + ";";
+            }
+          }
+        } else {
+          var interpolated = handleInterpolation(mergedProps, registered, value, false);
+
+          switch (_key) {
+            case 'animation':
+            case 'animationName':
+              {
+                string += processStyleName(_key) + ":" + interpolated + ";";
+                break;
+              }
+
+            default:
+              {
+                if (process.env.NODE_ENV !== 'production' && _key === 'undefined') {
+                  console.error(UNDEFINED_AS_OBJECT_KEY_ERROR);
+                }
+
+                string += _key + "{" + interpolated + "}";
+              }
+          }
+        }
+      }
+    }
+  }
+
+  return string;
+}
+
+var labelPattern = /label:\s*([^\s;\n{]+)\s*;/g;
+var sourceMapPattern;
+
+if (process.env.NODE_ENV !== 'production') {
+  sourceMapPattern = /\/\*#\ssourceMappingURL=data:application\/json;\S+\s+\*\//;
+} // this is the cursor for keyframes
+// keyframes are stored on the SerializedStyles object as a linked list
+
+
+var cursor;
+var serializeStyles = function serializeStyles(args, registered, mergedProps) {
+  if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null && args[0].styles !== undefined) {
+    return args[0];
+  }
+
+  var stringMode = true;
+  var styles = '';
+  cursor = undefined;
+  var strings = args[0];
+
+  if (strings == null || strings.raw === undefined) {
+    stringMode = false;
+    styles += handleInterpolation(mergedProps, registered, strings, false);
+  } else {
+    if (process.env.NODE_ENV !== 'production' && strings[0] === undefined) {
+      console.error(ILLEGAL_ESCAPE_SEQUENCE_ERROR);
+    }
+
+    styles += strings[0];
+  } // we start at 1 since we've already handled the first arg
+
+
+  for (var i = 1; i < args.length; i++) {
+    styles += handleInterpolation(mergedProps, registered, args[i], styles.charCodeAt(styles.length - 1) === 46);
+
+    if (stringMode) {
+      if (process.env.NODE_ENV !== 'production' && strings[i] === undefined) {
+        console.error(ILLEGAL_ESCAPE_SEQUENCE_ERROR);
+      }
+
+      styles += strings[i];
+    }
+  }
+
+  var sourceMap;
+
+  if (process.env.NODE_ENV !== 'production') {
+    styles = styles.replace(sourceMapPattern, function (match) {
+      sourceMap = match;
+      return '';
+    });
+  } // using a global regex with .exec is stateful so lastIndex has to be reset each time
+
+
+  labelPattern.lastIndex = 0;
+  var identifierName = '';
+  var match; // https://esbench.com/bench/5b809c2cf2949800a0f61fb5
+
+  while ((match = labelPattern.exec(styles)) !== null) {
+    identifierName += '-' + // $FlowFixMe we know it's not null
+    match[1];
+  }
+
+  var name = murmur2(styles) + identifierName;
+
+  if (process.env.NODE_ENV !== 'production') {
+    // $FlowFixMe SerializedStyles type doesn't have toString property (and we don't want to add it)
+    return {
+      name: name,
+      styles: styles,
+      map: sourceMap,
+      next: cursor,
+      toString: function toString() {
+        return "You have tried to stringify object returned from `css` function. It isn't supposed to be used directly (e.g. as value of the `className` prop), but rather handed to emotion so it can handle it (e.g. as value of `css` prop).";
+      }
+    };
+  }
+
+  return {
+    name: name,
+    styles: styles,
+    next: cursor
+  };
+};
+
+function css() {
+  for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+    args[_key] = arguments[_key];
+  }
+
+  return serializeStyles(args);
+}
 
 function _arrayLikeToArray(arr, len) {
   if (len == null || len > arr.length) len = arr.length;
@@ -904,12 +1340,11 @@ function _slicedToArray(arr, i) {
 var slicedToArray = _slicedToArray;
 
 var wrapper = {
-  display: "flex",
-  fontFamily: "Roboto, sans-serif",
-  "& + &": {
+  display: 'flex',
+  '& + &': {
     marginTop: 20
   },
-  "& &": {
+  '& &': {
     marginLeft: 20
   }
 };
@@ -922,25 +1357,25 @@ var body = {
   marginLeft: 12
 };
 var bullet = {
-  color: "#c2c6cc",
-  padding: "0 5px"
+  color: '#c2c6cc',
+  padding: '0 5px'
 };
 var childrenWrapper = {
   marginBottom: 20,
   marginTop: 20,
-  ".comment-container > &": {
+  '.comment-container > &': {
     marginLeft: 76
   },
-  ".comment-container > & > &": {
+  '.comment-container > & > &': {
     marginLeft: 76
   },
-  ".comment-container > & > & > &": {
+  '.comment-container > & > & > &': {
     marginLeft: 76
   },
-  ".comment-container > & > & > & > &": {
+  '.comment-container > & > & > & > &': {
     marginLeft: 76
   },
-  ".comment-container > & > & > & > & > &": {
+  '.comment-container > & > & > & > & > &': {
     marginLeft: 76
   }
 };
@@ -1122,11 +1557,6 @@ var votelink = {
   fontSize: 16,
   opacity: 0.5,
   padding: '0 5px',
-  // TODO: Make these global
-  backgroundColor: 'unset',
-  border: 0,
-  fontWeight: 700,
-  outline: 0,
   ':hover': {
     cursor: 'pointer',
     opacity: 0.8
@@ -1214,6 +1644,21 @@ function Comment(_ref) {
     }));
   }));
 }
+
+var global = {
+  fontFamily: 'Roboto, sans-serif',
+  button: {
+    backgroundColor: 'unset',
+    border: 0,
+    fontWeight: 700,
+    outline: 0
+  }
+};
+
+var normalize = /*#__PURE__*/
+
+/*#__PURE__*/
+css$1("\n  /*! modern-normalize v1.0.0 | MIT License | https://github.com/sindresorhus/modern-normalize */\n  *,\n  ::after,\n  ::before {\n    box-sizing: border-box;\n  }\n  :root {\n    -moz-tab-size: 4;\n    tab-size: 4;\n  }\n  html {\n    line-height: 1.15;\n    -webkit-text-size-adjust: 100%;\n  }\n  body {\n    margin: 0;\n  }\n  body {\n    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji',\n      'Segoe UI Emoji';\n  }\n  hr {\n    height: 0;\n    color: inherit;\n  }\n  abbr[title] {\n    text-decoration: underline dotted;\n  }\n  b,\n  strong {\n    font-weight: bolder;\n  }\n  code,\n  kbd,\n  pre,\n  samp {\n    font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;\n    font-size: 1em;\n  }\n  small {\n    font-size: 80%;\n  }\n  sub,\n  sup {\n    font-size: 75%;\n    line-height: 0;\n    position: relative;\n    vertical-align: baseline;\n  }\n  sub {\n    bottom: -0.25em;\n  }\n  sup {\n    top: -0.5em;\n  }\n  table {\n    text-indent: 0;\n    border-color: inherit;\n  }\n  button,\n  input,\n  optgroup,\n  select,\n  textarea {\n    font-family: inherit;\n    font-size: 100%;\n    line-height: 1.15;\n    margin: 0;\n  }\n  button,\n  select {\n    text-transform: none;\n  }\n  [type='button'],\n  [type='reset'],\n  [type='submit'],\n  button {\n    -webkit-appearance: button;\n  }\n  ::-moz-focus-inner {\n    border-style: none;\n    padding: 0;\n  }\n  :-moz-focusring {\n    outline: 1px dotted ButtonText;\n  }\n  :-moz-ui-invalid {\n    box-shadow: none;\n  }\n  legend {\n    padding: 0;\n  }\n  progress {\n    vertical-align: baseline;\n  }\n  ::-webkit-inner-spin-button,\n  ::-webkit-outer-spin-button {\n    height: auto;\n  }\n  [type='search'] {\n    -webkit-appearance: textfield;\n    outline-offset: -2px;\n  }\n  ::-webkit-search-decoration {\n    -webkit-appearance: none;\n  }\n  ::-webkit-file-upload-button {\n    -webkit-appearance: button;\n    font: inherit;\n  }\n  summary {\n    display: list-item;\n  }\n  /*# sourceMappingURL=/sm/3c8a72540b353e8066a63580fff1b7fbff35925789e51ac52bb6794c81144ab3.map */\n", process.env.NODE_ENV === "production" ? "" : "/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm5vcm1hbGl6ZS5jc3MudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQ2UiLCJmaWxlIjoibm9ybWFsaXplLmNzcy50cyIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IGNzcyB9IGZyb20gJ0BlbW90aW9uL2NvcmUnO1xyXG5leHBvcnQgZGVmYXVsdCBjc3MoYFxuICAvKiEgbW9kZXJuLW5vcm1hbGl6ZSB2MS4wLjAgfCBNSVQgTGljZW5zZSB8IGh0dHBzOi8vZ2l0aHViLmNvbS9zaW5kcmVzb3JodXMvbW9kZXJuLW5vcm1hbGl6ZSAqL1xuICAqLFxuICA6OmFmdGVyLFxuICA6OmJlZm9yZSB7XG4gICAgYm94LXNpemluZzogYm9yZGVyLWJveDtcbiAgfVxuICA6cm9vdCB7XG4gICAgLW1vei10YWItc2l6ZTogNDtcbiAgICB0YWItc2l6ZTogNDtcbiAgfVxuICBodG1sIHtcbiAgICBsaW5lLWhlaWdodDogMS4xNTtcbiAgICAtd2Via2l0LXRleHQtc2l6ZS1hZGp1c3Q6IDEwMCU7XG4gIH1cbiAgYm9keSB7XG4gICAgbWFyZ2luOiAwO1xuICB9XG4gIGJvZHkge1xuICAgIGZvbnQtZmFtaWx5OiBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sICdTZWdvZSBVSScsIFJvYm90bywgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiwgJ0FwcGxlIENvbG9yIEVtb2ppJyxcbiAgICAgICdTZWdvZSBVSSBFbW9qaSc7XG4gIH1cbiAgaHIge1xuICAgIGhlaWdodDogMDtcbiAgICBjb2xvcjogaW5oZXJpdDtcbiAgfVxuICBhYmJyW3RpdGxlXSB7XG4gICAgdGV4dC1kZWNvcmF0aW9uOiB1bmRlcmxpbmUgZG90dGVkO1xuICB9XG4gIGIsXG4gIHN0cm9uZyB7XG4gICAgZm9udC13ZWlnaHQ6IGJvbGRlcjtcbiAgfVxuICBjb2RlLFxuICBrYmQsXG4gIHByZSxcbiAgc2FtcCB7XG4gICAgZm9udC1mYW1pbHk6IHVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIENvbnNvbGFzLCAnTGliZXJhdGlvbiBNb25vJywgTWVubG8sIG1vbm9zcGFjZTtcbiAgICBmb250LXNpemU6IDFlbTtcbiAgfVxuICBzbWFsbCB7XG4gICAgZm9udC1zaXplOiA4MCU7XG4gIH1cbiAgc3ViLFxuICBzdXAge1xuICAgIGZvbnQtc2l6ZTogNzUlO1xuICAgIGxpbmUtaGVpZ2h0OiAwO1xuICAgIHBvc2l0aW9uOiByZWxhdGl2ZTtcbiAgICB2ZXJ0aWNhbC1hbGlnbjogYmFzZWxpbmU7XG4gIH1cbiAgc3ViIHtcbiAgICBib3R0b206IC0wLjI1ZW07XG4gIH1cbiAgc3VwIHtcbiAgICB0b3A6IC0wLjVlbTtcbiAgfVxuICB0YWJsZSB7XG4gICAgdGV4dC1pbmRlbnQ6IDA7XG4gICAgYm9yZGVyLWNvbG9yOiBpbmhlcml0O1xuICB9XG4gIGJ1dHRvbixcbiAgaW5wdXQsXG4gIG9wdGdyb3VwLFxuICBzZWxlY3QsXG4gIHRleHRhcmVhIHtcbiAgICBmb250LWZhbWlseTogaW5oZXJpdDtcbiAgICBmb250LXNpemU6IDEwMCU7XG4gICAgbGluZS1oZWlnaHQ6IDEuMTU7XG4gICAgbWFyZ2luOiAwO1xuICB9XG4gIGJ1dHRvbixcbiAgc2VsZWN0IHtcbiAgICB0ZXh0LXRyYW5zZm9ybTogbm9uZTtcbiAgfVxuICBbdHlwZT0nYnV0dG9uJ10sXG4gIFt0eXBlPSdyZXNldCddLFxuICBbdHlwZT0nc3VibWl0J10sXG4gIGJ1dHRvbiB7XG4gICAgLXdlYmtpdC1hcHBlYXJhbmNlOiBidXR0b247XG4gIH1cbiAgOjotbW96LWZvY3VzLWlubmVyIHtcbiAgICBib3JkZXItc3R5bGU6IG5vbmU7XG4gICAgcGFkZGluZzogMDtcbiAgfVxuICA6LW1vei1mb2N1c3Jpbmcge1xuICAgIG91dGxpbmU6IDFweCBkb3R0ZWQgQnV0dG9uVGV4dDtcbiAgfVxuICA6LW1vei11aS1pbnZhbGlkIHtcbiAgICBib3gtc2hhZG93OiBub25lO1xuICB9XG4gIGxlZ2VuZCB7XG4gICAgcGFkZGluZzogMDtcbiAgfVxuICBwcm9ncmVzcyB7XG4gICAgdmVydGljYWwtYWxpZ246IGJhc2VsaW5lO1xuICB9XG4gIDo6LXdlYmtpdC1pbm5lci1zcGluLWJ1dHRvbixcbiAgOjotd2Via2l0LW91dGVyLXNwaW4tYnV0dG9uIHtcbiAgICBoZWlnaHQ6IGF1dG87XG4gIH1cbiAgW3R5cGU9J3NlYXJjaCddIHtcbiAgICAtd2Via2l0LWFwcGVhcmFuY2U6IHRleHRmaWVsZDtcbiAgICBvdXRsaW5lLW9mZnNldDogLTJweDtcbiAgfVxuICA6Oi13ZWJraXQtc2VhcmNoLWRlY29yYXRpb24ge1xuICAgIC13ZWJraXQtYXBwZWFyYW5jZTogbm9uZTtcbiAgfVxuICA6Oi13ZWJraXQtZmlsZS11cGxvYWQtYnV0dG9uIHtcbiAgICAtd2Via2l0LWFwcGVhcmFuY2U6IGJ1dHRvbjtcbiAgICBmb250OiBpbmhlcml0O1xuICB9XG4gIHN1bW1hcnkge1xuICAgIGRpc3BsYXk6IGxpc3QtaXRlbTtcbiAgfVxuICAvKiMgc291cmNlTWFwcGluZ1VSTD0vc20vM2M4YTcyNTQwYjM1M2U4MDY2YTYzNTgwZmZmMWI3ZmJmZjM1OTI1Nzg5ZTUxYWM1MmJiNjc5NGM4MTE0NGFiMy5tYXAgKi9cbmApO1xyXG4iXX0= */", process.env.NODE_ENV === "production" ? "" : "/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm5vcm1hbGl6ZS5jc3MudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQ2UiLCJmaWxlIjoibm9ybWFsaXplLmNzcy50cyIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IGNzcyB9IGZyb20gJ0BlbW90aW9uL2NvcmUnO1xyXG5leHBvcnQgZGVmYXVsdCBjc3MoYFxuICAvKiEgbW9kZXJuLW5vcm1hbGl6ZSB2MS4wLjAgfCBNSVQgTGljZW5zZSB8IGh0dHBzOi8vZ2l0aHViLmNvbS9zaW5kcmVzb3JodXMvbW9kZXJuLW5vcm1hbGl6ZSAqL1xuICAqLFxuICA6OmFmdGVyLFxuICA6OmJlZm9yZSB7XG4gICAgYm94LXNpemluZzogYm9yZGVyLWJveDtcbiAgfVxuICA6cm9vdCB7XG4gICAgLW1vei10YWItc2l6ZTogNDtcbiAgICB0YWItc2l6ZTogNDtcbiAgfVxuICBodG1sIHtcbiAgICBsaW5lLWhlaWdodDogMS4xNTtcbiAgICAtd2Via2l0LXRleHQtc2l6ZS1hZGp1c3Q6IDEwMCU7XG4gIH1cbiAgYm9keSB7XG4gICAgbWFyZ2luOiAwO1xuICB9XG4gIGJvZHkge1xuICAgIGZvbnQtZmFtaWx5OiBzeXN0ZW0tdWksIC1hcHBsZS1zeXN0ZW0sICdTZWdvZSBVSScsIFJvYm90bywgSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiwgJ0FwcGxlIENvbG9yIEVtb2ppJyxcbiAgICAgICdTZWdvZSBVSSBFbW9qaSc7XG4gIH1cbiAgaHIge1xuICAgIGhlaWdodDogMDtcbiAgICBjb2xvcjogaW5oZXJpdDtcbiAgfVxuICBhYmJyW3RpdGxlXSB7XG4gICAgdGV4dC1kZWNvcmF0aW9uOiB1bmRlcmxpbmUgZG90dGVkO1xuICB9XG4gIGIsXG4gIHN0cm9uZyB7XG4gICAgZm9udC13ZWlnaHQ6IGJvbGRlcjtcbiAgfVxuICBjb2RlLFxuICBrYmQsXG4gIHByZSxcbiAgc2FtcCB7XG4gICAgZm9udC1mYW1pbHk6IHVpLW1vbm9zcGFjZSwgU0ZNb25vLVJlZ3VsYXIsIENvbnNvbGFzLCAnTGliZXJhdGlvbiBNb25vJywgTWVubG8sIG1vbm9zcGFjZTtcbiAgICBmb250LXNpemU6IDFlbTtcbiAgfVxuICBzbWFsbCB7XG4gICAgZm9udC1zaXplOiA4MCU7XG4gIH1cbiAgc3ViLFxuICBzdXAge1xuICAgIGZvbnQtc2l6ZTogNzUlO1xuICAgIGxpbmUtaGVpZ2h0OiAwO1xuICAgIHBvc2l0aW9uOiByZWxhdGl2ZTtcbiAgICB2ZXJ0aWNhbC1hbGlnbjogYmFzZWxpbmU7XG4gIH1cbiAgc3ViIHtcbiAgICBib3R0b206IC0wLjI1ZW07XG4gIH1cbiAgc3VwIHtcbiAgICB0b3A6IC0wLjVlbTtcbiAgfVxuICB0YWJsZSB7XG4gICAgdGV4dC1pbmRlbnQ6IDA7XG4gICAgYm9yZGVyLWNvbG9yOiBpbmhlcml0O1xuICB9XG4gIGJ1dHRvbixcbiAgaW5wdXQsXG4gIG9wdGdyb3VwLFxuICBzZWxlY3QsXG4gIHRleHRhcmVhIHtcbiAgICBmb250LWZhbWlseTogaW5oZXJpdDtcbiAgICBmb250LXNpemU6IDEwMCU7XG4gICAgbGluZS1oZWlnaHQ6IDEuMTU7XG4gICAgbWFyZ2luOiAwO1xuICB9XG4gIGJ1dHRvbixcbiAgc2VsZWN0IHtcbiAgICB0ZXh0LXRyYW5zZm9ybTogbm9uZTtcbiAgfVxuICBbdHlwZT0nYnV0dG9uJ10sXG4gIFt0eXBlPSdyZXNldCddLFxuICBbdHlwZT0nc3VibWl0J10sXG4gIGJ1dHRvbiB7XG4gICAgLXdlYmtpdC1hcHBlYXJhbmNlOiBidXR0b247XG4gIH1cbiAgOjotbW96LWZvY3VzLWlubmVyIHtcbiAgICBib3JkZXItc3R5bGU6IG5vbmU7XG4gICAgcGFkZGluZzogMDtcbiAgfVxuICA6LW1vei1mb2N1c3Jpbmcge1xuICAgIG91dGxpbmU6IDFweCBkb3R0ZWQgQnV0dG9uVGV4dDtcbiAgfVxuICA6LW1vei11aS1pbnZhbGlkIHtcbiAgICBib3gtc2hhZG93OiBub25lO1xuICB9XG4gIGxlZ2VuZCB7XG4gICAgcGFkZGluZzogMDtcbiAgfVxuICBwcm9ncmVzcyB7XG4gICAgdmVydGljYWwtYWxpZ246IGJhc2VsaW5lO1xuICB9XG4gIDo6LXdlYmtpdC1pbm5lci1zcGluLWJ1dHRvbixcbiAgOjotd2Via2l0LW91dGVyLXNwaW4tYnV0dG9uIHtcbiAgICBoZWlnaHQ6IGF1dG87XG4gIH1cbiAgW3R5cGU9J3NlYXJjaCddIHtcbiAgICAtd2Via2l0LWFwcGVhcmFuY2U6IHRleHRmaWVsZDtcbiAgICBvdXRsaW5lLW9mZnNldDogLTJweDtcbiAgfVxuICA6Oi13ZWJraXQtc2VhcmNoLWRlY29yYXRpb24ge1xuICAgIC13ZWJraXQtYXBwZWFyYW5jZTogbm9uZTtcbiAgfVxuICA6Oi13ZWJraXQtZmlsZS11cGxvYWQtYnV0dG9uIHtcbiAgICAtd2Via2l0LWFwcGVhcmFuY2U6IGJ1dHRvbjtcbiAgICBmb250OiBpbmhlcml0O1xuICB9XG4gIHN1bW1hcnkge1xuICAgIGRpc3BsYXk6IGxpc3QtaXRlbTtcbiAgfVxuICAvKiMgc291cmNlTWFwcGluZ1VSTD0vc20vM2M4YTcyNTQwYjM1M2U4MDY2YTYzNTgwZmZmMWI3ZmJmZjM1OTI1Nzg5ZTUxYWM1MmJiNjc5NGM4MTE0NGFiMy5tYXAgKi9cbmApO1xyXG4iXX0= */");
 
 function Forum(props) {
   var apiKey = props.apiKey,
@@ -1304,6 +1749,8 @@ function Forum(props) {
 
 
   return jsx("div", {
+    css: /*#__PURE__*/css([normalize, global], process.env.NODE_ENV === "production" ? "" : "/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIkZvcnVtLnRzeCJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUErQ2lCIiwiZmlsZSI6IkZvcnVtLnRzeCIsInNvdXJjZXNDb250ZW50IjpbImltcG9ydCBSZWFjdCwgeyB1c2VFZmZlY3QsIHVzZVN0YXRlIH0gZnJvbSAncmVhY3QnO1xyXG5pbXBvcnQga3kgZnJvbSAna3kvdW1kJztcclxuaW1wb3J0IENvbW1lbnQgZnJvbSAnLi4vQ29tbWVudC9Db21tZW50JztcclxuaW1wb3J0IGdsb2JhbCBmcm9tICcuLi9nbG9iYWwnO1xyXG5pbXBvcnQgbm9ybWFsaXplIGZyb20gJy4uLy4uL2xpYi9ub3JtYWxpemUuY3NzJztcclxuZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gRm9ydW0ocHJvcHMpIHtcclxuICAgIGNvbnN0IHsgYXBpS2V5LCBmb3J1bU5hbWUsIGxpbmssIGxpbWl0ID0gMTAwLCBwcm94eSA9ICcnIH0gPSBwcm9wcztcclxuICAgIGNvbnN0IFtjb21tZW50cywgc2V0Q29tbWVudHNdID0gdXNlU3RhdGUoW10pO1xyXG4gICAgdXNlRWZmZWN0KCgpID0+IHtcclxuICAgICAgICBhdXRoZW50aWNhdGVVc2VyKCk7XHJcbiAgICB9LCBbXSk7XHJcbiAgICB1c2VFZmZlY3QoKCkgPT4ge1xyXG4gICAgICAgIGlmICghbGluaylcclxuICAgICAgICAgICAgcmV0dXJuO1xyXG4gICAgICAgIHNldENvbW1lbnRzKFtdKTtcclxuICAgICAgICBmZXRjaENvbW1lbnRzKCk7XHJcbiAgICB9LCBbbGlua10pO1xyXG4gICAgdXNlRWZmZWN0KCgpID0+IHtcclxuICAgICAgICAvLyBUaGlzIHdpbGwgcnVuIGVhY2ggdGltZSB3ZSBmZXRjaCBhbnkgY29tbWVudHMsIHdlIGNvdWxkIHByb2JhYmx5IG1ha2UgdGhpcyBydW4gb25jZSBhZnRlciB3ZSBrbm93IGFsbCBjb21tZW50cyBoYXZlIGJlZW4gZmV0Y2hlZFxyXG4gICAgICAgIC8vIGZldGNoQ3VycmVudFVzZXJMaWtlcygpXHJcbiAgICB9LCBbY29tbWVudHNdKTtcclxuICAgIGNvbnN0IGF1dGhlbnRpY2F0ZVVzZXIgPSBhc3luYyAoKSA9PiB7XHJcbiAgICAgICAgLy8gY29uc3QgcmVzID0gYXdhaXQga3lcclxuICAgICAgICAvLyAgIC5wb3N0KFxyXG4gICAgICAgIC8vICAgICBgaHR0cHM6Ly9kaXNxdXMuY29tL2FwaS8zLjAvcG9zdHMvbGlzdC5qc29uP2FwaV9rZXk9JHthcGlLZXl9JmZvcnVtPSR7Zm9ydW19JnRocmVhZD1saW5rOiR7cm91dGVyLnF1ZXJ5Py5saW5rfWAsXHJcbiAgICAgICAgLy8gICApXHJcbiAgICAgICAgLy8gICAuanNvbigpXHJcbiAgICB9O1xyXG4gICAgY29uc3QgZmV0Y2hDb21tZW50cyA9IGFzeW5jIChjdXJzb3IgPSAnJykgPT4ge1xyXG4gICAgICAgIGNvbnN0IHJlcyA9IGF3YWl0IGt5XHJcbiAgICAgICAgICAgIC5nZXQoYCR7cHJveHl9aHR0cHM6Ly9kaXNxdXMuY29tL2FwaS8zLjAvcG9zdHMvbGlzdC5qc29uP2FwaV9rZXk9JHthcGlLZXl9JmZvcnVtPSR7Zm9ydW1OYW1lfSZ0aHJlYWQ9bGluazoke2xpbmt9JmxpbWl0PSR7bGltaXR9JmN1cnNvcj0ke2N1cnNvcn1gKVxyXG4gICAgICAgICAgICAuanNvbigpO1xyXG4gICAgICAgIHNldENvbW1lbnRzKChjb21tZW50cykgPT4gWy4uLmNvbW1lbnRzLCAuLi5yZXNbJ3Jlc3BvbnNlJ11dKTtcclxuICAgICAgICBpZiAocmVzWydyZXNwb25zZSddLmxlbmd0aCA9PT0gbGltaXQpXHJcbiAgICAgICAgICAgIGZldGNoQ29tbWVudHMocmVzWydjdXJzb3InXVsnbmV4dCddKTtcclxuICAgIH07XHJcbiAgICAvLyBjb25zdCBmZXRjaEN1cnJlbnRVc2VyTGlrZXMgPSBhc3luYyAoKTogUHJvbWlzZTx2b2lkPiA9PiB7XHJcbiAgICAvLyAgIGNvbnN0IHBvc3RzID0gY29tbWVudHNcclxuICAgIC8vICAgICAuZmlsdGVyKChjb21tZW50KSA9PiBjb21tZW50Lmxpa2VzID4gMCB8fCBjb21tZW50LmRpc2xpa2VzID4gMClcclxuICAgIC8vICAgICAubWFwKChjb21tZW50KSA9PiBgJnBvc3Q9JHtjb21tZW50LmlkfWApXHJcbiAgICAvLyAgICAgLmpvaW4oJycpXHJcbiAgICAvLyAgIGNvbnN0IHJlcyA9IGF3YWl0IGt5XHJcbiAgICAvLyAgICAgLmdldChgaHR0cHM6Ly9kaXNxdXMuY29tL2FwaS8zLjAvZW1iZWQvdGhyZWFkRGV0YWlscy5qc29uP2FwaV9rZXk9JHtrZXl9JnRocmVhZD04MTI2OTUxOTU5JHtwb3N0c31gLCB7XHJcbiAgICAvLyAgICAgICBjcmVkZW50aWFsczogJ2luY2x1ZGUnLFxyXG4gICAgLy8gICAgIH0pXHJcbiAgICAvLyAgICAgLmpzb24oKVxyXG4gICAgLy8gfVxyXG4gICAgcmV0dXJuICg8ZGl2IGNzcz17W25vcm1hbGl6ZSwgZ2xvYmFsXX0+XG4gICAgICA8ZGl2IGNsYXNzTmFtZT1cImNvbW1lbnQtY29udGFpbmVyXCI+XG4gICAgICAgIHtjb21tZW50c1xyXG4gICAgICAgIC5maWx0ZXIoKGNvbW1lbnQpID0+ICFjb21tZW50LnBhcmVudClcclxuICAgICAgICAubWFwKChjb21tZW50KSA9PiAoPENvbW1lbnQga2V5PXtjb21tZW50LmlkfSBjb21tZW50PXtjb21tZW50fSBhbGxDb21tZW50cz17Y29tbWVudHN9Lz4pKX1cbiAgICAgIDwvZGl2PlxuICAgIDwvZGl2Pik7XHJcbn1cclxuIl19 */")
+  }, jsx("div", {
     className: "comment-container"
   }, comments.filter(function (comment) {
     return !comment.parent;
@@ -1313,7 +1760,7 @@ function Forum(props) {
       comment: comment,
       allComments: comments
     });
-  }));
+  })));
 }
 
 export default Forum;

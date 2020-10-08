@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import ky from 'ky/umd'
+import { css } from '@emotion/core'
 
 import Comment from '../Comment/Comment'
 import { IComment } from '../Comment/interface'
+import global from '../global'
+import normalize from '../../lib/normalize.css'
 
 interface Props {
   apiKey: string
@@ -62,12 +65,14 @@ export default function Forum(props: Props): JSX.Element {
   // }
 
   return (
-    <div className="comment-container">
-      {comments
-        .filter((comment) => !comment.parent)
-        .map((comment) => (
-          <Comment key={comment.id} comment={comment} allComments={comments} />
-        ))}
+    <div css={[normalize, global]}>
+      <div className="comment-container">
+        {comments
+          .filter((comment) => !comment.parent)
+          .map((comment) => (
+            <Comment key={comment.id} comment={comment} allComments={comments} />
+          ))}
+      </div>
     </div>
   )
 }
