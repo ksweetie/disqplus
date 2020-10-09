@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import ky from 'ky/umd'
 
-import Comment from '../Comment/Comment'
-import { IComment } from '../Comment/interface'
-import Global from '../Global'
+import { IComment } from 'disqus/Comment/interface'
+import Comment from 'disqus/Comment/Comment'
+import Global from 'disqus/Global'
 
 interface Props {
   apiKey: string
