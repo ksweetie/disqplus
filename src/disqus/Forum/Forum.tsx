@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import ky from 'ky/umd'
-import { css } from '@emotion/core'
 
 import Comment from '../Comment/Comment'
 import { IComment } from '../Comment/interface'
-import global from '../global'
-import normalize from '../../lib/normalize.css'
+import Global from '../Global'
 
 interface Props {
   apiKey: string
@@ -65,7 +63,7 @@ export default function Forum(props: Props): JSX.Element {
   // }
 
   return (
-    <div css={[normalize, global]}>
+    <Global>
       <div className="comment-container">
         {comments
           .filter((comment) => !comment.parent)
@@ -73,6 +71,6 @@ export default function Forum(props: Props): JSX.Element {
             <Comment key={comment.id} comment={comment} allComments={comments} />
           ))}
       </div>
-    </div>
+    </Global>
   )
 }
