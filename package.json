@@ -65,7 +65,7 @@
     "build": "NODE_ENV=production BABEL_ENV=production rollup -c",
     "watch": "NODE_ENV=production BABEL_ENV=production rollup -c -w",
     "publish:public": "npm publish --access public",
-    "test": "test",
+    "test": "jest",
     "storybook": "start-storybook -p 6006",
     "build-storybook": "build-storybook"
   },
